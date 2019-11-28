@@ -1,17 +1,51 @@
 // 리액트 컴포넌트 구성에 필요한 요소들을 불러옵니다.
-import React , { useState } from 'react';
+import React , { useState, useEffect } from 'react';
 // 현재 컴포넌트를 꾸미기 위한 css를 가져옵니다.
 import '../../assets/scss/TodoPage/TodoPage.scss';
 import { callbackify } from 'util';
 
+import axios from 'axios';
+import { resetWarningCache } from 'prop-types';
+
 // TodoPage를 그려줄 Component를 선언합니다.
 function TodoPage(props) {
     // UI와 연관있는 변수들을 선언합니다.
-    const [items , setItems] = useState(['Hello World' , 'Hi']);
+    const [items , setItems] = useState([]);
     const [todo, setTodo] = useState('');
 
+    useEffect(async ()=>{
+        //컴포넌트가 render 되었을 때 실행되는 부분
+        let response = await get();
+        setItems([...response.data]);
+    } , []);
+
+    const get = async () => {
+        return await axios({
+            url:"http://localhost:8000/api/",
+            method:'get'
+        });
+    }
+
+    const post = async(context) =>{
+        return await axios({
+            url:"http://localhost:8000/api/",
+            method:'post',
+            data : {
+                'context' : context,
+                'is_closed' : false
+            }
+        });
+    }
+
+    const del= async (id)=>{
+        return axios({
+            url : 'http://localhost:8000/api/' +  id,
+            method : 'delete',
+        });
+    }
+
     // ADD 버튼을 클릭했을 때 실행될 함수를 선언합니다.
-    function handleCreate(){
+    const handleCreate = async() => {
         if(todo.trim().length === 0){
             alert('내용이 비어있어용');
         }
@@ -19,14 +53,23 @@ function TodoPage(props) {
             alert('내용이 너무 길어요');
         }
         else{
-            setItems([...items , todo]);
+            //setItems([...items , todo]);
+            //setTodo("");
+            await post(todo);
+            let response = await get();
+            setItems([...response.data]);
             setTodo("");
+            
         }
     }
 
-    function handleDelete(idx){
-        items.splice(idx , 1);
-        setItems([ ...items ]);
+    const handleDelete = async (idx)=>{
+        //items.splice(idx , 1);
+        //setItems([ ...items ]);
+        await del(idx);
+        let response = await get();
+        setItems([...response.data]);
+        
     }
 
     // Input이 변경될 때 실행될 함수를 선언합니다.
@@ -76,8 +119,8 @@ function TodoPage(props) {
                                 (item, idx)=>{
                                     return <li  className="item divider divider-blue" 
                                                 key={idx} >
-                                        <p className="item-desc">{ item }</p>
-                                        <button type='button' onClick={ ()=>{ handleDelete(idx) } }>del</button>
+                                        <p className="item-desc">{ item.context }</p>
+                                        <button type='button' onClick={ ()=>{ handleDelete(item.id) } }>del</button>
                                     </li>
                                 }
                             )
